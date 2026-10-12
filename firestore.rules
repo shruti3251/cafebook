@@ -1,0 +1,199 @@
+rules_version = '2';
+
+// Cafebook security model (works on the free Spark plan - no Cloud Functions)
+// - Staff: a signed-in user with a document at /staff/{uid} whose cafeId matches.
+// - Customers: signed in anonymously (or with a verified phone when OTP is on).
+//   They can read public cafe/menu data, look up a table by its secret token,
+//   create orders that pass the checks below, and read ONLY their own orders.
+// - Item prices can't be checked here (rules can't loop over a list), so the
+//   dashboard compares every order with the live menu and flags mismatches.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+
+    function staffDoc() {
+      return get(/databases/$(database)/documents/staff/$(request.auth.uid));
+    }
+
+    function isStaff(cafeId) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/staff/$(request.auth.uid))
+        && staffDoc().data.cafeId == cafeId;
+    }
+
+    function isOwner(cafeId) {
+      return isStaff(cafeId) && staffDoc().data.role == 'owner';
+    }
+
+    function hasVerifiedPhone() {
+      return signedIn() && ('phone_number' in request.auth.token)
+        && request.auth.token.phone_number != null;
+    }
+
+    // ---------- Cafe profile (public read, owner write) ----------
+    match /cafes/{cafeId} {
+      allow read: if true;
+      allow update: if isOwner(cafeId);
+      allow create, delete: if false;
+    }
+
+    // ---------- Staff membership (owner manages) ----------
+    match /staff/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isOwner(resource.data.cafeId));
+      allow create: if isOwner(request.resource.data.cafeId)
+        && request.resource.data.role in ['owner', 'staff']
+        && request.resource.data.keys().hasOnly(['cafeId', 'email', 'name', 'role', 'createdAt']);
+      allow delete: if isOwner(resource.data.cafeId) && uid != request.auth.uid;
+      allow update: if false;
+    }
+
+    // ---------- Tables (staff only) ----------
+    match /tables/{tableId} {
+      allow read, delete: if isStaff(resource.data.cafeId);
+      allow create: if isStaff(request.resource.data.cafeId);
+      allow update: if isStaff(resource.data.cafeId)
+        && request.resource.data.cafeId == resource.data.cafeId;
+    }
+
+    // ---------- Table lookup by secret token ----------
+    // Anyone holding the token (i.e. scanning the QR) can fetch this one doc.
+    // Listing is forbidden, so tokens can't be enumerated.
+    match /tableAccess/{token} {
+      allow get: if true;
+      allow list: if isStaff(resource.data.cafeId);
+      allow create: if isStaff(request.resource.data.cafeId);
+      allow update, delete: if isStaff(resource.data.cafeId);
+    }
+
+    // ---------- Table sessions (staff only) ----------
+    match /tableSessions/{sessionId} {
+      allow read, update: if isStaff(resource.data.cafeId);
+      allow create: if isStaff(request.resource.data.cafeId);
+      allow delete: if false;
+    }
+
+    // ---------- Menu (public read, staff write) ----------
+    match /categories/{id} {
+      allow read: if true;
+      allow create: if isStaff(request.resource.data.cafeId);
+      allow update, delete: if isStaff(resource.data.cafeId);
+    }
+
+    match /menuItems/{id} {
+      allow read: if true;
+      allow create: if isStaff(request.resource.data.cafeId)
+        && request.resource.data.price is number && request.resource.data.price >= 0;
+      allow update: if isStaff(resource.data.cafeId)
+        && request.resource.data.cafeId == resource.data.cafeId
+        && request.resource.data.price is number && request.resource.data.price >= 0;
+      allow delete: if isStaff(resource.data.cafeId);
+    }
+
+    // Compressed menu photos (stored here instead of Cloud Storage)
+    match /menuImages/{id} {
+      allow read: if true;
+      allow create: if isStaff(request.resource.data.cafeId)
+        && request.resource.data.data is string
+        && request.resource.data.data.size() < 900000;
+      allow delete: if isStaff(resource.data.cafeId);
+      allow update: if false;
+    }
+
+    // ---------- Customers (staff only; filled in by the dashboard) ----------
+    // Doc id is "{cafeId}_{phone}"
+    match /customers/{id} {
+      allow read: if isStaff(id.split('_')[0]);
+      allow create, update: if isStaff(id.split('_')[0]) && request.resource.data.cafeId == id.split('_')[0];
+      allow delete: if false;
+    }
+
+    // ---------- Daily order-number counter ----------
+    // Can only go up by exactly 1, and only together with the order it numbers.
+    function validCounter(id) {
+      let d = request.resource.data;
+      return signedIn()
+        && d.keys().hasOnly(['cafeId', 'day', 'value', 'lastOrderId'])
+        && id == d.cafeId + '_' + d.day
+        && d.lastOrderId is string
+        && !exists(/databases/$(database)/documents/orders/$(d.lastOrderId))
+        && getAfter(/databases/$(database)/documents/orders/$(d.lastOrderId)).data.orderNumber == d.value;
+    }
+
+    match /counters/{id} {
+      allow get: if signedIn();
+      allow create: if validCounter(id) && request.resource.data.value == 1;
+      allow update: if validCounter(id) && request.resource.data.value == resource.data.value + 1;
+      allow list, delete: if false;
+    }
+
+    // ---------- Orders ----------
+    function validNewOrder(orderId) {
+      let d = request.resource.data;
+      let acc = get(/databases/$(database)/documents/tableAccess/$(d.tableToken)).data;
+      let cafe = get(/databases/$(database)/documents/cafes/$(d.cafeId)).data;
+      let counter = getAfter(/databases/$(database)/documents/counters/$(d.cafeId + '_' + d.orderDay)).data;
+      return signedIn()
+        && d.keys().hasOnly([
+             'cafeId', 'tableId', 'tableNumber', 'tableToken', 'sessionId', 'sessionStatus',
+             'customerUid', 'customerName', 'customerPhone', 'customerPhoneE164',
+             'items', 'subtotal', 'gstRate', 'tax', 'total',
+             'status', 'paymentStatus', 'paymentMethod', 'orderNumber', 'orderDay', 'createdAt', 'updatedAt'])
+        && d.customerUid == request.auth.uid
+        // Secret table token must be valid and match the table + its open session
+        && d.tableToken is string
+        && acc.active == true
+        && acc.cafeId == d.cafeId
+        && acc.tableId == d.tableId
+        && acc.tableNumber == d.tableNumber
+        && acc.currentSessionId == d.sessionId
+        // Fresh order state only
+        && d.sessionStatus == 'open'
+        && d.status == 'received'
+        && d.paymentStatus == 'unpaid'
+        && d.paymentMethod == null
+        && d.createdAt == request.time
+        && d.updatedAt == request.time
+        // Customer details
+        && d.customerName is string && d.customerName.size() > 0 && d.customerName.size() <= 40
+        && d.customerPhone is string && d.customerPhone.matches('^[6-9][0-9]{9}$')
+        && d.customerPhoneE164 == '+91' + d.customerPhone
+        // Amounts: GST rate from the cafe, maths must add up
+        && d.items is list && d.items.size() > 0 && d.items.size() <= 40
+        && d.subtotal is number && d.subtotal > 0
+        && d.tax is number && d.total is number
+        && d.gstRate == cafe.get('gstRate', 5)
+        // float() everywhere: rules refuse to mix whole numbers and decimals (e.g. ₹19 vs ₹10.50 GST)
+        && math.abs(float(d.tax) - float(d.subtotal) * float(d.gstRate) / 100.0) <= 0.011
+        && math.abs(float(d.total) - (float(d.subtotal) + float(d.tax))) <= 0.011
+        // Order number comes from the counter written in the same transaction
+        && d.orderDay is string && d.orderDay.matches('^[0-9]{8}$')
+        && counter.value == d.orderNumber
+        && counter.lastOrderId == orderId
+        // OTP mode: the verified phone must match the order
+        && (cafe.get('otpEnabled', false) == false
+            || (hasVerifiedPhone() && request.auth.token.phone_number == d.customerPhoneE164));
+    }
+
+    match /orders/{orderId} {
+      // Lets the app ask "did my order already go through?" before retrying.
+      allow get: if signedIn() && resource == null;
+
+      allow read: if isStaff(resource.data.cafeId)
+        || (signedIn() && resource.data.customerUid == request.auth.uid)
+        || (hasVerifiedPhone() && resource.data.customerPhoneE164 == request.auth.token.phone_number);
+
+      // An order id can only be used once, so retries never create duplicates.
+      allow create: if validNewOrder(orderId);
+
+      // Staff may only change workflow/payment fields, never items or amounts.
+      allow update: if isStaff(resource.data.cafeId)
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['status', 'paymentStatus', 'paymentMethod', 'paidAt', 'sessionStatus', 'updatedAt'])
+        && request.resource.data.status in ['received', 'preparing', 'served', 'cancelled']
+        && request.resource.data.paymentStatus in ['unpaid', 'paid'];
+
+      allow delete: if false;
+    }
+  }
+}

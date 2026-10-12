@@ -1,0 +1,8 @@
+{
+  "name": "cafebook-scripts",
+  "private": true,
+  "description": "One-time setup scripts (seed data). Not part of the website.",
+  "dependencies": {
+    "firebase-admin": "^12.6.0"
+  }
+}

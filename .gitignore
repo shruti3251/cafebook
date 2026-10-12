@@ -1,0 +1,12 @@
+node_modules
+dist
+.env
+.env.local
+.firebase
+*.log
+scripts/node_modules
+scripts/serviceAccount.json
+serviceAccount*.json
+.firebaserc
+
+.emulator-data
