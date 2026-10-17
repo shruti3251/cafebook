@@ -3,14 +3,42 @@
 Customers scan the QR code on their table, enter their name and phone number, and order from their phone.
 You see every order live on the dashboard, grouped by table and by customer, so you can tell each person their own total and collect payment.
 
-- **Customer app:** mobile-first menu, cart, live order status, "My Orders", and a running bill
-- **Owner dashboard:** live tables, per-customer bills, UPI QR, receipts, menu editor, reports, CSV export, and printable QR cards
-- **Built with:** React + Vite + Tailwind CSS, and Firebase on the **free Spark plan** (Firestore + Auth). No card needed.
-- **Hosting:** Netlify (free) or Firebase Hosting (free)
+**Live demo:** https://cafebook.netlify.app · **Stack:** React + Vite + Tailwind CSS, Firebase on the **free Spark plan** (Firestore + Auth, no card needed), hosted free on Netlify with auto-deploy from GitHub.
+
+## ✨ Features
+
+### 📱 For customers (no app to install)
+- **Scan & order:** each table has its own QR code with a secret code, so nobody can order for a table they aren't at
+- **Quick sign-in:** name and 10-digit mobile number; remembered on the device ("Welcome back, Rahul! · Not you? Change")
+- **Menu:** category tabs, search, photos, veg/non-veg marks, ₹ prices; unavailable items greyed out
+- **Cart:** quantity steppers, a note per item ("less sugar"), subtotal + GST + total; warns if an item runs out while in the cart
+- **Safe ordering:** double taps and slow networks never create duplicate orders; the cart is saved and retried when the connection drops
+- **Live order tracker:** Received → Preparing → Served updates in real time, with a confetti 🎉 on success
+- **My Orders:** every order from this phone, plus a **"Your current bill"** card for the current visit; their name shown throughout
+- Several people at one table can each order separately, as many times as they like
+
+### 🧑‍🍳 For the cafe owner & staff
+- **Live tables:** Free / Occupied / Has new order / Paid · ready to close, with a 🔔 chime, a glowing card and notifications for new orders
+- **Per-customer bills:** orders grouped by customer, with their **tap-to-call phone number** and a large "To pay" amount
+- **Order status:** Received → Preparing → Served, or cancel
+- **Payments:** mark paid by Cash / UPI / Card; **UPI QR** for the exact amount; printable **GST receipt** (A4 or 80 mm thermal); share the bill via WhatsApp
+- **Close table:** one tap once everyone has paid; the next group starts a fresh bill
+- **⚠️ Price check:** flags any order whose prices don't match the menu
+- **Menu manager:** categories, items, photos (auto-compressed), veg/non-veg, an availability on/off switch, reordering
+- **📦 Kitchen stock:** raw materials with quantities and units; **Received / Used / Set count**; **low-stock alerts**; an uneditable change history; CSV export
+- **📊 Reports:** today, this week, **this month, last month, any month** or a custom range, with a daily sales chart, day-by-day table, best sellers, payment split and sales by table
+- **📄 PDF sales report:** a downloadable monthly (or any period) report for your accountant; plus CSV / Excel export
+- **🖨️ QR codes:** print all table cards on A4 (logo, cafe name, "Table X", QR); generate a new code if one is misused
+- **Settings & staff:** cafe name, logo, address, GSTIN, GST rate, UPI ID, tables; staff and owner logins with roles
+- **Multi-cafe ready:** every record carries a `cafeId`
+
+### 🔒 Security
+Firestore security rules check every order (table code, current bill, GST maths, order numbers, duplicates). Customers only ever see their own orders, and only staff can see the dashboard and stock. See [Security](#security-whats-protected).
 
 ---
 
 ## Contents
+- [✨ Features](#-features)
 - [👀 Quick preview on your computer](#-quick-preview-on-your-computer-no-firebase-account-needed)
 - [How it works](#how-it-works)
 - [Part 1 — Create your free Firebase project](#part-1--create-your-free-firebase-project)
@@ -287,7 +315,7 @@ Cafebook/
 │   ├── lib/                   Firebase setup, ordering (orders.js), formatting, QR/UPI/CSV/print helpers
 │   ├── components/ui.jsx      Buttons, modals, toasts, veg mark, lazy images, loaders…
 │   ├── customer/              Welcome, Menu, Cart, OrderSuccess (live tracker), MyOrders
-│   ├── admin/                 Dashboard: tables, table detail, menu, reports, settings, printing
+│   ├── admin/                 Dashboard: tables, table detail, menu, stock, reports (+ PDF), settings, printing
 │   └── pages/                 Landing + 404
 ├── scripts/seed.js            Adds the demo cafe, menu, tables and owner login
 ├── firestore.rules            Security rules (the "backend")
