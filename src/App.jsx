@@ -16,6 +16,7 @@ const MyOrders = lazy(() => import('./customer/MyOrders.jsx'));
 // Owner dashboard (separate bundle, never downloaded by customers)
 const AdminLayout = lazy(() => import('./admin/AdminLayout.jsx'));
 const Login = lazy(() => import('./admin/Login.jsx'));
+const Signup = lazy(() => import('./admin/Signup.jsx'));
 const TablesView = lazy(() => import('./admin/TablesView.jsx'));
 const TableDetail = lazy(() => import('./admin/TableDetail.jsx'));
 const MenuManager = lazy(() => import('./admin/MenuManager.jsx'));
@@ -52,6 +53,8 @@ export default function App() {
         </Route>
 
         <Route path="/admin/login" element={<Login />} />
+        <Route path="/admin/signup" element={<Signup />} />
+        <Route path="/signup" element={<Signup />} />
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<TablesView />} />
           <Route path="table/:tableId" element={<TableDetail />} />

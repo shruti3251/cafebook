@@ -32,18 +32,45 @@ service cloud.firestore {
     }
 
     // ---------- Cafe profile (public read, owner write) ----------
+    // ---------- Self-service registration ----------
+    // A signed-in user who isn't staff anywhere yet may create ONE new cafe,
+    // together with their own owner record, in a single batch.
+    function notStaffYet() {
+      return signedIn()
+        // must be a real email/password login, not an anonymous customer session
+        && request.auth.token.firebase.sign_in_provider == 'password'
+        && !exists(/databases/$(database)/documents/staff/$(request.auth.uid));
+    }
+
     match /cafes/{cafeId} {
       allow read: if true;
       allow update: if isOwner(cafeId);
-      allow create, delete: if false;
+      allow create: if notStaffYet()
+        && cafeId.matches('^[a-z0-9-]{3,40}$')
+        && request.resource.data.keys().hasOnly(['name', 'logoUrl', 'address', 'phone', 'gstin', 'gstRate', 'upiId', 'otpEnabled', 'ownerUid', 'createdAt'])
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 50
+        && request.resource.data.gstRate is number && request.resource.data.gstRate >= 0 && request.resource.data.gstRate <= 28
+        && request.resource.data.otpEnabled == false
+        && request.resource.data.createdAt == request.time
+        // ...and the owner record is created in the same batch
+        && getAfter(/databases/$(database)/documents/staff/$(request.auth.uid)).data.cafeId == cafeId;
+      allow delete: if false;
     }
 
     // ---------- Staff membership (owner manages) ----------
     match /staff/{uid} {
       allow read: if signedIn() && (request.auth.uid == uid || isOwner(resource.data.cafeId));
-      allow create: if isOwner(request.resource.data.cafeId)
-        && request.resource.data.role in ['owner', 'staff']
-        && request.resource.data.keys().hasOnly(['cafeId', 'email', 'name', 'role', 'createdAt']);
+      allow create: if request.resource.data.keys().hasOnly(['cafeId', 'email', 'name', 'role', 'createdAt'])
+        && (
+          // an owner adds staff to their cafe
+          (isOwner(request.resource.data.cafeId) && request.resource.data.role in ['owner', 'staff'])
+          // or a new user registers a brand-new cafe (created in the same batch)
+          || (uid == request.auth.uid && notStaffYet()
+              && request.resource.data.role == 'owner'
+              && !exists(/databases/$(database)/documents/cafes/$(request.resource.data.cafeId))
+              && getAfter(/databases/$(database)/documents/cafes/$(request.resource.data.cafeId)).data.ownerUid == request.auth.uid)
+        );
       allow delete: if isOwner(resource.data.cafeId) && uid != request.auth.uid;
       allow update: if false;
     }

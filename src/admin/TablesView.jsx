@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { BellRing, DoorClosed, Plus, Users } from 'lucide-react';
 import { EmptyState, Modal, Spinner, useToast } from '../components/ui.jsx';
 import { errorMessage, inr, isActiveOrder, sumOrders } from '../lib/format.js';
@@ -24,7 +24,10 @@ function Stat({ label, value, accent }) {
 }
 
 export default function TablesView() {
-  const { fb, tables, openOrders, newTables, itemsById, menuLoaded, lowStock } = useAdmin();
+  const { fb, tables, openOrders, newTables, itemsById, menuLoaded, lowStock, cafe } = useAdmin();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const welcome = Boolean(location.state?.welcome);
   const toast = useToast();
   const [closing, setClosing] = useState(null); // row being confirmed
   const [busy, setBusy] = useState(false);
@@ -72,6 +75,24 @@ export default function TablesView() {
           <p className="text-coffee-500">Updates in real time. Tap a table to see orders and bills.</p>
         </div>
       </div>
+
+      {welcome && (
+        <div className="rounded-3xl bg-gradient-to-br from-mint-500 to-mint-700 text-white p-5 shadow-lift animate-fadeIn">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-xl font-extrabold">🎉 Welcome to Cafebook, {cafe?.name}!</h2>
+              <p className="text-mint-50 mt-1">Your cafe is ready. A few quick steps to start taking orders:</p>
+            </div>
+            <button onClick={() => navigate('.', { replace: true, state: null })} className="text-mint-50 font-bold text-sm shrink-0">Dismiss</button>
+          </div>
+          <ol className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4 text-sm font-semibold">
+            <li><Link to="/admin/settings" className="block rounded-2xl bg-white/15 hover:bg-white/25 px-3 py-2">1. Add logo, GSTIN & UPI ID →</Link></li>
+            <li><Link to="/admin/menu" className="block rounded-2xl bg-white/15 hover:bg-white/25 px-3 py-2">2. Set up your menu & prices →</Link></li>
+            <li><Link to="/admin/settings" className="block rounded-2xl bg-white/15 hover:bg-white/25 px-3 py-2">3. Print table QR codes →</Link></li>
+            <li><Link to="/admin/inventory" className="block rounded-2xl bg-white/15 hover:bg-white/25 px-3 py-2">4. Add kitchen stock (optional) →</Link></li>
+          </ol>
+        </div>
+      )}
 
       {lowStock.length > 0 && (
         <Link to="/admin/inventory" className="flex items-center gap-3 rounded-3xl bg-amber-50 border-2 border-amber-200 px-5 py-3 hover:bg-amber-100 transition">

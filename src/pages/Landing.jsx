@@ -23,7 +23,10 @@ export default function Landing() {
           ))}
         </div>
         <p className="mt-10 text-coffee-500">At a cafe? Scan the QR code on your table to start.</p>
-        <Link to="/admin" className="btn-ghost mt-4">Cafe owner login</Link>
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
+          <Link to="/admin/signup" className="btn-primary">Register your cafe — free</Link>
+          <Link to="/admin" className="btn-ghost">Cafe owner login</Link>
+        </div>
       </div>
     </div>
   );

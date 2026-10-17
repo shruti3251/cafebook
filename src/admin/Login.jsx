@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { onAuthStateChanged, sendPasswordResetEmail, signInWithEmailAndPassword } from 'firebase/auth';
 import { Lock, Mail } from 'lucide-react';
 import { staffFirebase } from '../lib/firebase.js';
@@ -70,6 +70,10 @@ export default function Login() {
           {error && <p className="text-sm font-semibold text-coral-600">{error}</p>}
           <button className="btn-primary w-full" disabled={busy}>{busy ? <Spinner className="text-white" /> : 'Sign in'}</button>
           <button type="button" onClick={reset} className="w-full text-sm font-semibold text-coffee-500 min-h-[40px]">Forgot password?</button>
+          <div className="border-t border-coffee-50 pt-4 text-center text-sm text-coffee-500">
+            New to Cafebook?{' '}
+            <Link to="/admin/signup" className="font-bold text-coral-600 underline underline-offset-2">Register your cafe</Link>
+          </div>
         </div>
       </form>
     </div>

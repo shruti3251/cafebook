@@ -30,7 +30,7 @@ You see every order live on the dashboard, grouped by table and by customer, so 
 - **📄 PDF downloads:** the **All orders** list as a PDF, plus a monthly (or any period) **sales report PDF** for your accountant; CSV / Excel export too
 - **🖨️ QR codes:** print all table cards on A4 (logo, cafe name, "Table X", QR); generate a new code if one is misused
 - **Settings & staff:** cafe name, logo, address, GSTIN, GST rate, UPI ID, tables; staff and owner logins with roles
-- **Multi-cafe ready:** every record carries a `cafeId`
+- **🏪 Self-service sign-up (multi-cafe):** any cafe owner can register at **/signup** with their email. They get their own private dashboard, tables, QR codes and an optional sample menu in about 2 minutes. Each cafe's data is completely separate.
 
 ### 🔒 Security
 Firestore security rules check every order (table code, current bill, GST maths, order numbers, duplicates). Customers only ever see their own orders, and only staff can see the dashboard and stock. See [Security](#security-whats-protected).
@@ -48,6 +48,7 @@ Firestore security rules check every order (table code, current bill, GST maths,
 - [Part 5 — Put the website online with Netlify](#part-5--put-the-website-online-with-netlify)
 - [Part 6 — Print your table QR codes](#part-6--print-your-table-qr-codes)
 - [Later — Connect your own domain](#later--connect-your-own-domain-eg-cafebookin)
+- [Registering more cafes](#registering-more-cafes)
 - [Day-to-day use](#day-to-day-use)
 - [Free plan limits](#free-plan-limits)
 - [Security: what's protected](#security-whats-protected)
@@ -234,6 +235,20 @@ Dashboard → **Settings → Tables & QR codes**:
 5. **Reprint all QR codes.** The old ones point to the netlify.app address. (That address keeps working too, so nothing breaks in between.)
 
 ---
+
+## Registering more cafes
+
+Any cafe owner can sign up themselves at **https://cafebook.netlify.app/signup**. The login page and home page have a **"Register your cafe"** link too. They enter:
+- their name, email and password (their login)
+- the cafe name, and optionally its address and phone
+- how many tables they have, and whether to start with a sample menu
+
+Cafebook then creates the cafe with its own ID (e.g. `brew-bean-cafe`), the tables with secret QR codes, and the owner login, and opens their dashboard with a welcome checklist (logo/GSTIN/UPI → menu → print QR codes → stock).
+
+- Each owner only ever sees **their own** cafe. The security rules check this on every read and write.
+- One login can own one cafe. Owners add staff from Settings → Staff logins.
+- Registration needs a real email/password login; anonymous customer sessions can't create cafes.
+- On the free Spark plan, all cafes share the same daily limits (see [Free plan limits](#free-plan-limits)). Upgrade to Blaze once several busy cafes are using it.
 
 ## Day-to-day use
 

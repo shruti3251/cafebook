@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { Navigate, NavLink, Outlet, useLocation } from 'react-router-dom';
+import { Link, Navigate, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestore';
 import { BarChart3, Bell, BellOff, LayoutGrid, LogOut, Package, Settings as SettingsIcon, UtensilsCrossed } from 'lucide-react';
@@ -133,8 +133,13 @@ export default function AdminLayout() {
       <FullScreenMessage
         emoji="🔒"
         title="No dashboard access"
-        text={`${user.email} isn't registered as staff for any cafe. Ask the owner to add you in Settings → Staff.`}
-        action={<button className="btn-dark" onClick={() => signOut(fb.auth)}>Sign out</button>}
+        text={`${user.email} isn't linked to a cafe yet. If you own a cafe, set it up now. If you work at one, ask the owner to add you in Settings → Staff.`}
+        action={(
+          <div className="flex flex-wrap justify-center gap-2">
+            <Link to="/admin/signup" className="btn-primary">Set up my cafe</Link>
+            <button className="btn-dark" onClick={() => signOut(fb.auth)}>Sign out</button>
+          </div>
+        )}
       />
     );
   }
