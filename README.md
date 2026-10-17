@@ -239,7 +239,10 @@ Dashboard → **Settings → Tables & QR codes**:
 - New here? Click **Load sample list** for a typical cafe starter list, then correct the quantities.
 - Stock is updated by hand; it doesn't go down automatically when orders are placed.
 
-**Reports:** pick a date or range to see sales, number of orders, best sellers, and the payment method breakdown. Search by name, phone or order number. **Export CSV** opens in Excel.
+**Reports:** choose **Today, Yesterday, This week, This month, Last month**, any **month**, or a custom date range. You'll see total sales, orders, average order, best day, best sellers, the payment method breakdown and, for longer periods, a **daily sales chart** and a **day-by-day table**. Search by name, phone or order number, or filter by table.
+- **Download PDF** creates a ready-to-share sales report (e.g. for your accountant): summary, daily chart, day-by-day table with totals, payments, best sellers and sales by table. Tick **Include order list in PDF** to add every order. Amounts are written as "Rs." because standard PDF fonts have no ₹ symbol.
+- **CSV** exports the orders (and the day-by-day table) for Excel.
+- Past periods load once; periods that include today update live.
 
 **Staff** (owner only): Settings → **Staff logins → Add staff**. Staff handle orders, tables and the menu; only owners change settings and staff. Removing someone blocks their dashboard access immediately.
 
