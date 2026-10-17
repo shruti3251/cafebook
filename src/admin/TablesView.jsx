@@ -24,7 +24,7 @@ function Stat({ label, value, accent }) {
 }
 
 export default function TablesView() {
-  const { fb, tables, openOrders, newTables, itemsById, menuLoaded } = useAdmin();
+  const { fb, tables, openOrders, newTables, itemsById, menuLoaded, lowStock } = useAdmin();
   const toast = useToast();
   const [closing, setClosing] = useState(null); // row being confirmed
   const [busy, setBusy] = useState(false);
@@ -72,6 +72,21 @@ export default function TablesView() {
           <p className="text-coffee-500">Updates in real time. Tap a table to see orders and bills.</p>
         </div>
       </div>
+
+      {lowStock.length > 0 && (
+        <Link to="/admin/inventory" className="flex items-center gap-3 rounded-3xl bg-amber-50 border-2 border-amber-200 px-5 py-3 hover:bg-amber-100 transition">
+          <span className="text-2xl">📦</span>
+          <div className="flex-1 min-w-0">
+            <div className="font-bold text-amber-900">
+              {lowStock.length} item{lowStock.length > 1 ? 's' : ''} running low in the kitchen
+            </div>
+            <div className="text-sm text-amber-800 truncate">
+              {lowStock.slice(0, 6).map((i) => `${i.name}${i.quantity <= 0 ? ' (out)' : ''}`).join(', ')}{lowStock.length > 6 ? '…' : ''}
+            </div>
+          </div>
+          <span className="font-bold text-amber-900 shrink-0">View stock →</span>
+        </Link>
+      )}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Stat label="Occupied tables" value={`${occupied}/${tables.length}`} />

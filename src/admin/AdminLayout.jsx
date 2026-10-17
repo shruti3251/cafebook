@@ -2,7 +2,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { Navigate, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestore';
-import { BarChart3, Bell, BellOff, LayoutGrid, LogOut, Settings as SettingsIcon, UtensilsCrossed } from 'lucide-react';
+import { BarChart3, Bell, BellOff, LayoutGrid, LogOut, Package, Settings as SettingsIcon, UtensilsCrossed } from 'lucide-react';
+import { stockStatus } from './inventoryOps.js';
 import { staffFirebase } from '../lib/firebase.js';
 import { useDocData, useMenu, useOnline } from '../lib/hooks.js';
 import { recordCustomer } from './tableOps.js';
@@ -16,6 +17,7 @@ export const useAdmin = () => useContext(Ctx);
 const NAV = [
   { to: '/admin', label: 'Tables', icon: LayoutGrid, end: true },
   { to: '/admin/menu', label: 'Menu', icon: UtensilsCrossed },
+  { to: '/admin/inventory', label: 'Stock', icon: Package },
   { to: '/admin/orders', label: 'Reports', icon: BarChart3 },
   { to: '/admin/settings', label: 'Settings', icon: SettingsIcon },
 ];
@@ -32,6 +34,18 @@ export default function AdminLayout() {
   const staff = useDocData(fb.db, user ? `staff/${user.uid}` : null);
   const cafeId = staff.data?.cafeId;
   const cafe = useDocData(fb.db, cafeId ? `cafes/${cafeId}` : null);
+
+  // ---- Live kitchen stock (for low-stock alerts) ----
+  const [inventory, setInventory] = useState(null);
+  useEffect(() => {
+    if (!cafeId) return undefined;
+    return onSnapshot(
+      query(collection(fb.db, 'inventory'), where('cafeId', '==', cafeId)),
+      (s) => setInventory(s.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => a.name.localeCompare(b.name))),
+      () => setInventory([]),
+    );
+  }, [fb.db, cafeId]);
+  const lowStock = useMemo(() => (inventory || []).filter((i) => stockStatus(i) !== 'ok'), [inventory]);
 
   // ---- Live tables ----
   const [tables, setTables] = useState(null);
@@ -107,7 +121,8 @@ export default function AdminLayout() {
     fb, user, staff: staff.data, isOwner: staff.data?.role === 'owner', cafeId, cafe: cafe.data,
     tables: tables || [], openOrders: openOrders || [], newTables, markSeen, soundOn, setSoundOn,
     itemsById, menuLoaded: !menu.loading,
-  }), [fb, user, staff.data, cafeId, cafe.data, tables, openOrders, newTables, markSeen, soundOn, itemsById, menu.loading]); // eslint-disable-line react-hooks/exhaustive-deps
+    inventory: inventory || [], inventoryLoaded: inventory !== null, lowStock,
+  }), [fb, user, staff.data, cafeId, cafe.data, tables, openOrders, newTables, markSeen, soundOn, itemsById, menu.loading, inventory, lowStock]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (user === null) return <Navigate to="/admin/login" replace state={{ from: location.pathname }} />;
   if (user === undefined || staff.loading || (cafeId && (cafe.loading || tables === null || openOrders === null))) {
@@ -146,6 +161,7 @@ export default function AdminLayout() {
               >
                 <n.icon size={20} /> {n.label}
                 {n.end && pendingCount > 0 && <span className="ml-auto chip bg-white text-coral-600">{pendingCount}</span>}
+                {n.label === 'Stock' && lowStock.length > 0 && <span className="ml-auto chip bg-amber-400 text-coffee-900" title="Items running low">{lowStock.length}</span>}
               </NavLink>
             ))}
           </nav>
@@ -174,11 +190,12 @@ export default function AdminLayout() {
         </main>
 
         {/* Bottom nav (phone) */}
-        <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 grid grid-cols-4 bg-white border-t border-coffee-50 pb-safe pt-1">
+        <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 grid grid-cols-5 bg-white border-t border-coffee-50 pb-safe pt-1">
           {NAV.map((n) => (
             <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => `relative flex flex-col items-center gap-0.5 py-1.5 text-xs font-bold ${isActive ? 'text-coral-600' : 'text-coffee-500'}`}>
               <n.icon size={22} /> {n.label}
               {n.end && pendingCount > 0 && <span className="absolute top-0 right-1/4 h-5 min-w-[20px] px-1 rounded-full bg-coral-500 text-white text-[11px] grid place-items-center">{pendingCount}</span>}
+              {n.label === 'Stock' && lowStock.length > 0 && <span className="absolute top-0 right-1/4 h-5 min-w-[20px] px-1 rounded-full bg-amber-400 text-coffee-900 text-[11px] grid place-items-center">{lowStock.length}</span>}
             </NavLink>
           ))}
         </nav>

@@ -232,6 +232,13 @@ Dashboard → **Settings → Tables & QR codes**:
 
 **Menu:** flip **On/Off** when something runs out. Customers see it greyed out immediately, and anyone with it in their cart is warned. Use ✏️ to edit items and photos (photos are compressed automatically), and ⬆⬇ to reorder.
 
+**Stock (kitchen inventory):** the **Stock** page lists your raw materials (coffee beans, milk, sugar, bread…) with how much is left.
+- **+ Received** when a delivery arrives, **− Used** for kitchen use or wastage, and **⋮ → Set exact count** for your closing-time count.
+- Give each item an **alert level** (e.g. Milk: 5 L). At or below it, the item shows **Running low**; at zero, **Out of stock**. The Stock menu shows a badge, and the Tables screen shows a "running low" banner.
+- **History** records every change with who made it, when, how much and why. It can't be edited afterwards. Export the stock list or history as CSV.
+- New here? Click **Load sample list** for a typical cafe starter list, then correct the quantities.
+- Stock is updated by hand; it doesn't go down automatically when orders are placed.
+
 **Reports:** pick a date or range to see sales, number of orders, best sellers, and the payment method breakdown. Search by name, phone or order number. **Export CSV** opens in Excel.
 
 **Staff** (owner only): Settings → **Staff logins → Add staff**. Staff handle orders, tables and the menu; only owners change settings and staff. Removing someone blocks their dashboard access immediately.
@@ -297,6 +304,8 @@ Cafebook/
 | `categories` | cafeId, name, emoji, sortOrder |
 | `menuItems` | cafeId, categoryId, name, description, price, imageUrl, isVeg, isAvailable, sortOrder |
 | `menuImages` | cafeId, data (compressed photo) — `imageUrl` is `fs:<id>` or a normal https link |
+| `inventory` | cafeId, name, unit, category, quantity, minLevel, updatedAt, updatedBy |
+| `inventoryLogs` | cafeId, itemId, itemName, unit, change, before, after, reason, note, by, byUid, at (append-only history) |
 | `customers` | cafeId, phone, name, firstVisit, lastVisit, lastTableNumber, orderCount (updated by the dashboard) |
 | `orders` | cafeId, tableId, tableNumber, sessionId, sessionStatus, customerUid, customerName, customerPhone, items [{itemId, name, price, qty, note, isVeg}], subtotal, gstRate, tax, total, status, paymentStatus, paymentMethod, paidAt, orderNumber, orderDay, createdAt |
 | `counters` | daily order-number counter per cafe (resets at midnight IST) |

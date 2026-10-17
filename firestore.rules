@@ -100,6 +100,31 @@ service cloud.firestore {
       allow update: if false;
     }
 
+    // ---------- Kitchen inventory (staff only) ----------
+    function validStockItem(d) {
+      return d.name is string && d.name.size() > 0 && d.name.size() <= 60
+        && d.unit is string && d.unit.size() <= 12
+        && d.quantity is number && d.quantity >= 0
+        && d.minLevel is number && d.minLevel >= 0;
+    }
+
+    match /inventory/{id} {
+      allow read, delete: if isStaff(resource.data.cafeId);
+      allow create: if isStaff(request.resource.data.cafeId) && validStockItem(request.resource.data);
+      allow update: if isStaff(resource.data.cafeId)
+        && request.resource.data.cafeId == resource.data.cafeId
+        && validStockItem(request.resource.data);
+    }
+
+    // Stock change history: append-only, so nobody can quietly rewrite it.
+    match /inventoryLogs/{id} {
+      allow read: if isStaff(resource.data.cafeId);
+      allow create: if isStaff(request.resource.data.cafeId)
+        && request.resource.data.at == request.time
+        && request.resource.data.byUid == request.auth.uid;
+      allow update, delete: if false;
+    }
+
     // ---------- Customers (staff only; filled in by the dashboard) ----------
     // Doc id is "{cafeId}_{phone}"
     match /customers/{id} {

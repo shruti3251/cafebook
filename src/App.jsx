@@ -19,6 +19,7 @@ const Login = lazy(() => import('./admin/Login.jsx'));
 const TablesView = lazy(() => import('./admin/TablesView.jsx'));
 const TableDetail = lazy(() => import('./admin/TableDetail.jsx'));
 const MenuManager = lazy(() => import('./admin/MenuManager.jsx'));
+const Inventory = lazy(() => import('./admin/Inventory.jsx'));
 const OrdersReports = lazy(() => import('./admin/OrdersReports.jsx'));
 const Settings = lazy(() => import('./admin/Settings.jsx'));
 
@@ -55,6 +56,7 @@ export default function App() {
           <Route index element={<TablesView />} />
           <Route path="table/:tableId" element={<TableDetail />} />
           <Route path="menu" element={<MenuManager />} />
+          <Route path="inventory" element={<Inventory />} />
           <Route path="orders" element={<OrdersReports />} />
           <Route path="settings" element={<Settings />} />
         </Route>
