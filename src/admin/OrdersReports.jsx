@@ -102,8 +102,7 @@ export default function OrdersReports() {
   const [error, setError] = useState(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [shown, setShown] = useState(PAGE);
-  const [includeOrders, setIncludeOrders] = useState(false);
-  const [pdfBusy, setPdfBusy] = useState(false);
+  const [pdfBusy, setPdfBusy] = useState(null); // 'report' | 'orders' | null
 
   const choosePreset = (key) => { setPreset(key); setRange(presetRange(key)); };
   const chooseMonth = (ym) => { if (!ym) return; setMonth(ym); setPreset('pickMonth'); setRange(monthRange(ym)); };
@@ -166,16 +165,18 @@ export default function OrdersReports() {
     ['TOTAL', report.orderCount, report.totals.subtotal, report.totals.tax, report.totals.total, report.methods.cash, report.methods.upi, report.methods.card, report.methods.unpaid],
   ]);
 
-  async function downloadPdf() {
-    setPdfBusy(true);
+  async function downloadPdf(kind) {
+    setPdfBusy(kind);
     try {
-      const { downloadReportPdf } = await import('./reportPdf.js');
-      await downloadReportPdf({ cafe, report, orders: filtered, filters: { table, search: q.trim() }, includeOrders });
+      const pdf = await import('./reportPdf.js');
+      const filters = { table, search: q.trim() };
+      if (kind === 'orders') await pdf.downloadOrdersPdf({ cafe, orders: filtered, from, to, filters });
+      else await pdf.downloadReportPdf({ cafe, report, filters });
       toast('PDF downloaded', 'success');
     } catch (e) {
       toast(errorMessage(e, 'Could not create the PDF.'), 'error');
     } finally {
-      setPdfBusy(false);
+      setPdfBusy(null);
     }
   }
 
@@ -189,14 +190,9 @@ export default function OrdersReports() {
           <p className="text-coffee-500 flex items-center gap-1.5"><CalendarDays size={16} /> {period}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <label className="flex items-center gap-2 text-sm font-semibold text-coffee-700 mr-1 cursor-pointer">
-            <input type="checkbox" className="h-4 w-4 accent-coral-500" checked={includeOrders} onChange={(e) => setIncludeOrders(e.target.checked)} />
-            Include order list in PDF
-          </label>
-          <button onClick={downloadPdf} disabled={pdfBusy || orders === null} className="btn-primary">
-            {pdfBusy ? <Spinner className="text-white" /> : <FileText size={18} />} Download PDF
+          <button onClick={() => downloadPdf('report')} disabled={!!pdfBusy || orders === null} className="btn-primary" title="Summary: totals, daily chart, payments, best sellers">
+            {pdfBusy === 'report' ? <Spinner className="text-white" /> : <FileText size={18} />} Sales report PDF
           </button>
-          <button onClick={exportCsv} disabled={!filtered.length} className="btn-ghost"><Download size={18} /> CSV</button>
         </div>
       </div>
 
@@ -327,9 +323,17 @@ export default function OrdersReports() {
           )}
 
           <div className="card overflow-hidden">
-            <div className="px-5 py-4 flex items-center justify-between">
-              <h3 className="font-bold text-lg">All orders <span className="text-coffee-300">({filtered.length})</span></h3>
-              {to >= today && <span className="chip bg-mint-100 text-mint-700">● Live</span>}
+            <div className="px-5 py-4 flex flex-wrap items-center justify-between gap-2">
+              <h3 className="font-bold text-lg flex items-center gap-2">
+                All orders <span className="text-coffee-300">({filtered.length})</span>
+                {to >= today && <span className="chip bg-mint-100 text-mint-700">● Live</span>}
+              </h3>
+              <div className="flex gap-2">
+                <button onClick={() => downloadPdf('orders')} disabled={!!pdfBusy || !filtered.length} className="btn-primary btn-sm" title="Every order in this list as a PDF">
+                  {pdfBusy === 'orders' ? <Spinner size={16} className="text-white" /> : <FileText size={16} />} Download PDF
+                </button>
+                <button onClick={exportCsv} disabled={!filtered.length} className="btn-ghost btn-sm"><Download size={16} /> CSV</button>
+              </div>
             </div>
             {filtered.length === 0 ? (
               <EmptyState emoji="🧾" title="No orders found" text="Try another period or clear the filters." />

@@ -27,7 +27,7 @@ You see every order live on the dashboard, grouped by table and by customer, so 
 - **Menu manager:** categories, items, photos (auto-compressed), veg/non-veg, an availability on/off switch, reordering
 - **📦 Kitchen stock:** raw materials with quantities and units; **Received / Used / Set count**; **low-stock alerts**; an uneditable change history; CSV export
 - **📊 Reports:** today, this week, **this month, last month, any month** or a custom range, with a daily sales chart, day-by-day table, best sellers, payment split and sales by table
-- **📄 PDF sales report:** a downloadable monthly (or any period) report for your accountant; plus CSV / Excel export
+- **📄 PDF downloads:** the **All orders** list as a PDF, plus a monthly (or any period) **sales report PDF** for your accountant; CSV / Excel export too
 - **🖨️ QR codes:** print all table cards on A4 (logo, cafe name, "Table X", QR); generate a new code if one is misused
 - **Settings & staff:** cafe name, logo, address, GSTIN, GST rate, UPI ID, tables; staff and owner logins with roles
 - **Multi-cafe ready:** every record carries a `cafeId`
@@ -268,7 +268,9 @@ Dashboard → **Settings → Tables & QR codes**:
 - Stock is updated by hand; it doesn't go down automatically when orders are placed.
 
 **Reports:** choose **Today, Yesterday, This week, This month, Last month**, any **month**, or a custom date range. You'll see total sales, orders, average order, best day, best sellers, the payment method breakdown and, for longer periods, a **daily sales chart** and a **day-by-day table**. Search by name, phone or order number, or filter by table.
-- **Download PDF** creates a ready-to-share sales report (e.g. for your accountant): summary, daily chart, day-by-day table with totals, payments, best sellers and sales by table. Tick **Include order list in PDF** to add every order. Amounts are written as "Rs." because standard PDF fonts have no ₹ symbol.
+- **All orders → Download PDF** exports the order list exactly as filtered on screen (period, table, search): order number, date & time, table, customer, phone, items with notes, subtotal, GST, total, status and payment, with a total row. Cancelled orders are greyed out and not counted.
+- **Sales report PDF** (top of the page) creates a summary for your accountant: totals, daily chart, day-by-day table, payments, best sellers and sales by table.
+- Amounts in PDFs are written as "Rs." because standard PDF fonts have no ₹ symbol.
 - **CSV** exports the orders (and the day-by-day table) for Excel.
 - Past periods load once; periods that include today update live.
 
